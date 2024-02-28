@@ -48,7 +48,7 @@ Please open a GitHub issue.
 
 ## Acknowledgements
 
-This work has been supported by NIH grants R00 AG062230 and R21 EEBB033516.
+This work has been supported by NIH grants R00 AG062230 and R21 EB033516.
 
 The LCModel basis set reading code features contributions from the following individuals:
 
