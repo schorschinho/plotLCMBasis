@@ -3,38 +3,42 @@
 %
 % USAGE:
 % out = plotLCMBasis(basisSetFile, stagFlag, ppmmin, ppmmax, xlab, ylab, figTitle)
-% 
+%
 % DESCRIPTION:
 % Creates a figure showing all a basis functions in LCModel basis set.
-% 
+%
 % INPUTS:
 % basisSetFile  = basis set in .basis format (required)
 % stagFlag  = flag to decide whether basis functions should be plotted
 %               vertically staggered or simply over one another (optional.
 %               Default: 1 = staggered; 0 = not staggered)
+% zf        = Zero-filling factor for smoother plotting (optional. Default 1)
 % ppmmin    = lower limit of ppm scale to plot (optional.  Default = 0.2 ppm).
 % ppmmax    = upper limit of ppm scale to plot (optional.  Default = 5.2 ppm).
 % xlab      = Label for the x-axis (optional.  Default = 'Chemical shift (ppm)');
 % ylab      = label for the y-axis (optional.  Default = '');
 % figTitle  = label for the title of the plot (optional.  Default = '');
 
-function out = plotLCMBasis(basisSetFile, stagFlag, ppmmin, ppmmax, xlab, ylab, figTitle)
+function out = plotLCMBasis(basisSetFile, stagFlag, zf, ppmmin, ppmmax, xlab, ylab, figTitle)
 
 % Parse input arguments
-if nargin<7
+if nargin<8
     figTitle = '';
-    if nargin<6
-        ylab='';
-        if nargin<5
-            xlab='Chemical shift (ppm)';
-            if nargin<4
-                ppmmax=5.2;
-                if nargin<3
-                    ppmmin=0.2;
-                    if nargin<2
-                        stagFlag = 1;
-                        if nargin<1
-                            error('ERROR: no input basis set specified.  Aborting!!');
+    if nargin<7
+        ylab = '';
+        if nargin<6
+            xlab = 'Chemical shift (ppm)';
+            if nargin<5
+                ppmmax = 5.2;
+                if nargin<4
+                    ppmmin = 0.2;
+                    if nargin<3
+                        zf = 1;
+                        if nargin<2
+                            stagFlag = 1;
+                            if nargin<1
+                                error('ERROR: no input basis set specified.  Aborting!!');
+                            end
                         end
                     end
                 end
@@ -63,10 +67,19 @@ fidsArray       = zeros(nPts, nBasisFct);
 for kk = 1:nBasisFct
     fidsArray(:,kk) = basisSet.(metNamesArray{kk}).fids;
 end
-specsArray      = fftshift(fft(fidsArray,[],1),1);
-dwellTime       = basisSet.(metNamesArray{1}).dwelltime;
 txfrq           = basisSet.(metNamesArray{1}).txfrq;
+dwellTime       = basisSet.(metNamesArray{1}).dwelltime;
 spectralWidth   = 1/dwellTime;
+
+% Optional zero-fill
+% Calculate how many zeros to add
+zp              = ceil((nPts*zf) - nPts);
+% Add zeros using MATLAB array zeropadding function;
+fidsArray       = padarray(fidsArray, zp, 'post');
+nPts            = size(fidsArray, 1);
+
+% Calculate spectra & ppm axis
+specsArray      = fftshift(fft(fidsArray,[],1),1);
 f               = [(-spectralWidth/2)+(spectralWidth/(2*nPts)):spectralWidth/(nPts):(spectralWidth/2)-(spectralWidth/(2*nPts))];
 ppm             = f/(txfrq*1e-6) + 4.68;
 
@@ -76,7 +89,7 @@ if stagFlag==1
     % Staggered plots will be separated by the mean of the
     % maximum across all spectra
     stag = mean(max(real(specsArray)));
-    
+
     % Loop over all basis functions
     hold on
     for kk = 1:nBasisFct
@@ -86,7 +99,7 @@ if stagFlag==1
         text(ppmmin, - kk*stag, metNamesArray{kk}, 'FontSize', 14);
     end
     hold off
-    
+
     set(gca, 'XDir', 'reverse', 'XLim', [ppmmin, ppmmax], 'YLim', [-stag*(nBasisFct+1), max(real(specsArray(:,1)))]);
 
 else
@@ -150,7 +163,7 @@ end
 %
 % OUTPUTS:
 % out        = Input basis set saved as a structure in which each field is
-%               an individual metabolite basis spectrum in FID-A structure 
+%               an individual metabolite basis spectrum in FID-A structure
 %               format.
 
 function [out]=io_readlcmraw_basis(filename,conjugate)
@@ -204,8 +217,8 @@ spectralwidth=1/dwelltime;
 fileEnd=false;
 
 while ~feof(fid)
-     %look for a center frequency
-    ppmsep_index=contains(line,'PPMSEP');    
+    %look for a center frequency
+    ppmsep_index=contains(line,'PPMSEP');
     while ~ppmsep_index;
         line=fgets(fid);
         if ischar(line)
@@ -217,7 +230,7 @@ while ~feof(fid)
             if contains(line,'METABO') && ~contains(line, 'METABO_')
                 break
             end
-        end       
+        end
     end
     if ppmsep_index
         line = GetNumFromString(line);
@@ -225,7 +238,7 @@ while ~feof(fid)
     else
         centerFreq = [];
     end
-    
+
     %Look for the metabolite name
     metab_index=contains(line,'METABO') && ~contains(line, 'METABO_'); % ARC 2023-06-14
     while ~metab_index;
@@ -246,7 +259,7 @@ while ~feof(fid)
     end
 
     metabName=pat{1}{1};
-    
+
     hdrEnd_index=contains(line,'$END');
     while ~hdrEnd_index;
         line=fgets(fid);
@@ -257,9 +270,9 @@ while ~feof(fid)
             end
         end
     end
-    
+
     line=fgets(fid);
-    
+
     nmused_index=contains(line,'$NMUSED');
     basis_index=contains(line,'$BASIS');
     linenum=1;
@@ -339,7 +352,7 @@ while ~feof(fid)
     eval(['out.' metabName '.t=t;']);
     eval(['out.' metabName '.txfrq=txfrq;']);
     if ~isempty(centerFreq)
-            eval(['out.' metabName '.centerFreq=centerFreq;']);
+        eval(['out.' metabName '.centerFreq=centerFreq;']);
     end
     eval(['out.' metabName '.date=date;']);
     eval(['out.' metabName '.seq='''';']);
@@ -363,7 +376,7 @@ while ~feof(fid)
     eval(['out.' metabName '.flags.writtentotext=1;']);
     eval(['out.' metabName '.flags.downsampled=0;']);
     eval(['out.' metabName '.flags.isFourSteps=0;']);
-    
+
 end
 
 fclose(fid);
@@ -381,9 +394,9 @@ str3 = regexprep(str2, {'\.\s','\E\s','\e\s','\s\E','\s\e'},' ');
 end
 
 function str = RemoveWhiteSpaces(str)
-    pattern = '[ \t\n]'; % Match zero or more spaces, tabs, or newlines, followed by a double quote
-    replacement = ''; % Replace the matched string with just a double quote
-    str = regexprep(str, pattern, replacement);
+pattern = '[ \t\n]'; % Match zero or more spaces, tabs, or newlines, followed by a double quote
+replacement = ''; % Replace the matched string with just a double quote
+str = regexprep(str, pattern, replacement);
 end
 
 
@@ -405,34 +418,34 @@ b15 = 32768.d0;
 b16 = 65536.0d0;
 p   = 2147483647.0d0;
 
- %                                                                           4231
- %  PORTABLE RANDOM NUMBER GENERATOR                                         4232
- %   USING THE RECURSION                                                     4233
- %    DIX = DIX*A MOD P                                                      4234
- %                                                                           4235
- %                                                                           4237
- %  7**5, 2**15, 2**16, 2**31-1                                              4238
-                                                             
- %  GET 15 HI ORDER BITS OF DIX                                              4241
- xhi = dix./b16;
- xhi = xhi - rem(xhi,1.0d0);
- %  GET 16 LO BITS IF DIX AND FORM LO PRODUCT                                4244
- xalo =(dix-xhi.*b16).*a;
- %  GET 15 HI ORDER BITS OF LO PRODUCT                                       4246
- leftlo = xalo./b16;
- leftlo = leftlo - rem(leftlo,1.0d0);
- %  FORM THE 31 HIGHEST BITS OF FULL PRODUCT                                 4249
- fhi = xhi.*a + leftlo;
- %  GET OVERFLO PAST 31ST BIT OF FULL PRODUCT                                4251
- k = fix(fhi./b15);
- k = fix(k - rem(k,1.0d0));
- %  ASSEMBLE ALL THE PARTS AND PRESUBTRACT P                                 4254
- %   THE PARENTHESES ARE ESSENTIAL                                           4255
- dix =(((xalo-leftlo.*b16)-p)+(fhi-k.*b15).*b16) + k;
- %  ADD P BACK IN IF NECESSARY                                               4257
- if(dix < 0.0d0)
+%                                                                           4231
+%  PORTABLE RANDOM NUMBER GENERATOR                                         4232
+%   USING THE RECURSION                                                     4233
+%    DIX = DIX*A MOD P                                                      4234
+%                                                                           4235
+%                                                                           4237
+%  7**5, 2**15, 2**16, 2**31-1                                              4238
+
+%  GET 15 HI ORDER BITS OF DIX                                              4241
+xhi = dix./b16;
+xhi = xhi - rem(xhi,1.0d0);
+%  GET 16 LO BITS IF DIX AND FORM LO PRODUCT                                4244
+xalo =(dix-xhi.*b16).*a;
+%  GET 15 HI ORDER BITS OF LO PRODUCT                                       4246
+leftlo = xalo./b16;
+leftlo = leftlo - rem(leftlo,1.0d0);
+%  FORM THE 31 HIGHEST BITS OF FULL PRODUCT                                 4249
+fhi = xhi.*a + leftlo;
+%  GET OVERFLO PAST 31ST BIT OF FULL PRODUCT                                4251
+k = fix(fhi./b15);
+k = fix(k - rem(k,1.0d0));
+%  ASSEMBLE ALL THE PARTS AND PRESUBTRACT P                                 4254
+%   THE PARENTHESES ARE ESSENTIAL                                           4255
+dix =(((xalo-leftlo.*b16)-p)+(fhi-k.*b15).*b16) + k;
+%  ADD P BACK IN IF NECESSARY                                               4257
+if(dix < 0.0d0)
     dix = dix + p;
- end
- %  MULTIPLY BY 1/(2**31-1)                                                  4259
- randomresult = dix.*4.656612875d-10;
+end
+%  MULTIPLY BY 1/(2**31-1)                                                  4259
+randomresult = dix.*4.656612875d-10;
 end %function random

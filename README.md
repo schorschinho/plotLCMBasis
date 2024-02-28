@@ -16,7 +16,7 @@ Text overlap is not controlled for, so you'll probably need to resize the figure
 ## Usage
 
 ```
-out = plotLCMBasis(basisSetFile, stagFlag, ppmmin, ppmmax, xlab, ylab, figTitle)
+out = plotLCMBasis(basisSetFile, stagFlag, zf, ppmmin, ppmmax, xlab, ylab, figTitle)
 ```
 
 ### Inputs
@@ -26,6 +26,7 @@ basisSetFile    = LCModel basis set in .basis format (required)
 stagFlag        = flag to decide whether basis functions should be plotted
                     vertically staggered or simply over one another (optional.
                     Default: 1 = staggered; 0 = not staggered)
+zf              = Zero-filling factor for smoother plotting (optional. Default 1, i.e., no zero-fill)
 ppmmin          = lower limit of ppm scale to plot (optional.  Default = 0.2 ppm).
 ppmmax          = upper limit of ppm scale to plot (optional.  Default = 5.2 ppm).
 xlab            = Label for the x-axis (optional.  Default = 'Chemical shift (ppm)');
