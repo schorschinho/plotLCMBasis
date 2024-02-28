@@ -8,7 +8,7 @@
 % Creates a figure showing all a basis functions in LCModel basis set.
 % 
 % INPUTS:
-% basisSetFile  = LCModel basis set (.basis)
+% basisSetFile  = basis set in .basis format (required)
 % stagFlag  = flag to decide whether basis functions should be plotted
 %               vertically staggered or simply over one another (optional.
 %               Default: 1 = staggered; 0 = not staggered)
