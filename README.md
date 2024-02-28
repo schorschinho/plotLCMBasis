@@ -6,6 +6,7 @@ To generate a figure with staggered plots of basis functions in the basis set, s
 ```
 out = plotLCMBasis('yourBasisSet.basis');
 ```
+
 <img src="graphics/example1.png" alt="Example basis set plot" />
 
 The amount of stagger is determined automatically, but can be overridden with an additional input argument (see below).
@@ -20,6 +21,7 @@ out = plotLCMBasis(basisSetFile, stagFlag, ppmmin, ppmmax, xlab, ylab, figTitle)
 
 ### Inputs
 
+```
 basisSetFile    = LCModel basis set in .basis format (required)
 stagFlag        = flag to decide whether basis functions should be plotted
                     vertically staggered or simply over one another (optional.
@@ -29,6 +31,7 @@ ppmmax          = upper limit of ppm scale to plot (optional.  Default = 5.2 ppm
 xlab            = Label for the x-axis (optional.  Default = 'Chemical shift (ppm)');
 ylab            = label for the y-axis (optional.  Default = '');
 figTitle        = label for the title of the plot (optional.  Default = '');
+```
 
 ## Features
 
