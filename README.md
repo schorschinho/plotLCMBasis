@@ -16,7 +16,7 @@ Text overlap is not controlled for, so you'll probably need to resize the figure
 ## Usage
 
 ```
-out = plotLCMBasis(basisSetFile, stagFlag, zf, ppmmin, ppmmax, xlab, ylab, figTitle)
+out = plotLCMBasis(basisSetFile, stagFlag, metsToPlot, zf, ppmmin, ppmmax, xlab, ylab, figTitle)
 ```
 
 ### Inputs
@@ -26,6 +26,8 @@ basisSetFile    = LCModel basis set in .basis format (required)
 stagFlag        = flag to decide whether basis functions should be plotted
                     vertically staggered or simply over one another (optional.
                     Default: 1 = staggered; 0 = not staggered)
+metsToPlot      = cell array with the names of the metabolites to be plotted
+                    (optional. Default: 'all' = all metabolites will be plotted)
 zf              = Zero-filling factor for smoother plotting (optional. Default 1, i.e., no zero-fill)
 ppmmin          = lower limit of ppm scale to plot (optional.  Default = 0.2 ppm).
 ppmmax          = upper limit of ppm scale to plot (optional.  Default = 5.2 ppm).
@@ -37,6 +39,7 @@ figTitle        = label for the title of the plot (optional.  Default = '');
 ## Features
 
 - Staggered and non-staggered plots of basis functions.
+- Option to plot a subset of basis functions (provided in the argument `metsToPlot`).
 - Supports encrypted LCModel basis sets (as available on the LCModel website - not that anyone should use those)
 
 ## System requirements

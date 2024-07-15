@@ -12,6 +12,8 @@
 % stagFlag  = flag to decide whether basis functions should be plotted
 %               vertically staggered or simply over one another (optional.
 %               Default: 1 = staggered; 0 = not staggered)
+% metsToPlot = cell array with the names of the metabolites to be plotted
+%             (optional. Default: 'all' = all metabolites will be plotted)
 % zf        = Zero-filling factor for smoother plotting (optional. Default 1, i.e., no zero-fill)
 % ppmmin    = lower limit of ppm scale to plot (optional.  Default = 0.2 ppm).
 % ppmmax    = upper limit of ppm scale to plot (optional.  Default = 5.2 ppm).
@@ -19,25 +21,28 @@
 % ylab      = label for the y-axis (optional.  Default = '');
 % figTitle  = label for the title of the plot (optional.  Default = '');
 
-function out = plotLCMBasis(basisSetFile, stagFlag, zf, ppmmin, ppmmax, xlab, ylab, figTitle)
+function out = plotLCMBasis(basisSetFile, stagFlag, metsToPlot, zf, ppmmin, ppmmax, xlab, ylab, figTitle)
 
 % Parse input arguments
-if nargin<8
+if nargin<9
     figTitle = '';
-    if nargin<7
+    if nargin<8
         ylab = '';
-        if nargin<6
+        if nargin<7
             xlab = 'Chemical shift (ppm)';
-            if nargin<5
+            if nargin<6
                 ppmmax = 5.2;
-                if nargin<4
+                if nargin<5
                     ppmmin = 0.2;
-                    if nargin<3
+                    if nargin<4
                         zf = 1;
-                        if nargin<2
-                            stagFlag = 1;
-                            if nargin<1
-                                error('ERROR: no input basis set specified.  Aborting!!');
+                        if nargin<3
+                            metsToPlot = 'all';
+                            if nargin<2
+                                stagFlag = 1;
+                                if nargin<1
+                                    error('ERROR: no input basis set specified.  Aborting!!');
+                                end
                             end
                         end
                     end
@@ -83,33 +88,61 @@ specsArray      = fftshift(fft(fidsArray,[],1),1);
 f               = [(-spectralWidth/2)+(spectralWidth/(2*nPts)):spectralWidth/(nPts):(spectralWidth/2)-(spectralWidth/(2*nPts))];
 ppm             = f/(txfrq*1e-6) + 4.68;
 
+% Select the metabolite names to plot
+if ~iscell(metsToPlot) 
+    if strcmp(metsToPlot, 'all')
+        metsToPlot = metNamesArray;
+    else
+        metsToPlot = {metsToPlot};
+    end
+end
+
+% Calculate intersection of metabolites to plot and available metabolites
+[C, ia, ib]     = intersect(metsToPlot, metNamesArray, 'stable');
+nBasisFctToPlot = length(ib);
+
+% Trace output
+for rr = 1:length(metsToPlot)
+    [Ctemp, ~, ibtemp] = intersect(metsToPlot{rr}, metNamesArray);
+    if isempty(Ctemp)
+        fprintf('%02d: Searching for %s in basis set. NOT FOUND. \n', rr, metsToPlot{rr});
+    else
+        fprintf('%02d: Searching for %s in basis set. FOUND at index %02d. \n', rr, metsToPlot{rr}, ibtemp);
+    end
+end
+
+
 % Determine stag and plot
 if stagFlag==1
 
     % Staggered plots will be separated by the mean of the
     % maximum across all spectra
-    stag = mean(max(real(specsArray)));
+    if length(ib) == 1
+        stag = 0;
+    else
+        stag = mean(max(real(specsArray(:,ib))));
+    end
 
     % Loop over all basis functions
     hold on
-    for kk = 1:nBasisFct
-        plot(ppm, real(specsArray(:,kk) - kk*stag), 'k');
+    for kk = 1:nBasisFctToPlot
+        plot(ppm, real(specsArray(:,ib(kk)) - kk*stag), 'k');
         % Instead of a MATLAB legend, annotate each line separately with the
         % name of the metabolite
-        text(ppmmin, - kk*stag, metNamesArray{kk}, 'FontSize', 14);
+        text(ppmmin, - kk*stag, metNamesArray{ib(kk)}, 'FontSize', 14);
     end
     hold off
 
-    set(gca, 'XDir', 'reverse', 'XLim', [ppmmin, ppmmax], 'YLim', [-stag*(nBasisFct+1), max(real(specsArray(:,1)))]);
+    set(gca, 'XDir', 'reverse', 'XLim', [ppmmin, ppmmax], 'YLim', [-stag*(nBasisFctToPlot+1), max(real(specsArray(:,1)))]);
 
 else
 
     % Loop over all basis functions
     hold on
-    for kk = 1:nBasisFct
-        plot(ppm, real(specsArray(:,kk)));
+    for kk = 1:nBasisFctToPlot
+        plot(ppm, real(specsArray(:,ib(kk))));
     end
-    legend(metNamesArray);
+    legend(metNamesArray(ib));
     hold off
 
     set(gca, 'XDir', 'reverse', 'XLim', [ppmmin, ppmmax]);
