@@ -2,7 +2,7 @@
 % Georg Oeltzschner, Johns Hopkins University 2024.
 %
 % USAGE:
-% out = plotLCMBasis(basisSetFile, stagFlag, ppmmin, ppmmax, xlab, ylab, figTitle)
+% [out, basisSet] = plotLCMBasis(basisSetFile, stagFlag, metsToPlot, zf, ppmmin, ppmmax, xlab, ylab, figTitle, lb))
 %
 % DESCRIPTION:
 % Creates a figure showing all a basis functions in LCModel basis set.
@@ -20,28 +20,32 @@
 % xlab      = Label for the x-axis (optional.  Default = 'Chemical shift (ppm)');
 % ylab      = label for the y-axis (optional.  Default = '');
 % figTitle  = label for the title of the plot (optional.  Default = '');
+% lb        = Lorentzian linebroadening in Hz to be applied before plotting (optional. Default = 0 Hz).
 
-function out = plotLCMBasis(basisSetFile, stagFlag, metsToPlot, zf, ppmmin, ppmmax, xlab, ylab, figTitle)
+function [out, basisSet] = plotLCMBasis(basisSetFile, stagFlag, metsToPlot, zf, ppmmin, ppmmax, xlab, ylab, figTitle, lb)
 
 % Parse input arguments
-if nargin<9
-    figTitle = '';
-    if nargin<8
-        ylab = '';
-        if nargin<7
-            xlab = 'Chemical shift (ppm)';
-            if nargin<6
-                ppmmax = 5.2;
-                if nargin<5
-                    ppmmin = 0.2;
-                    if nargin<4
-                        zf = 1;
-                        if nargin<3
-                            metsToPlot = 'all';
-                            if nargin<2
-                                stagFlag = 1;
-                                if nargin<1
-                                    error('ERROR: no input basis set specified.  Aborting!!');
+if nargin<10
+    lb = 0;
+    if nargin<9
+        figTitle = '';
+        if nargin<8
+            ylab = '';
+            if nargin<7
+                xlab = 'Chemical shift (ppm)';
+                if nargin<6
+                    ppmmax = 5.2;
+                    if nargin<5
+                        ppmmin = 0.2;
+                        if nargin<4
+                            zf = 1;
+                            if nargin<3
+                                metsToPlot = 'all';
+                                if nargin<2
+                                    stagFlag = 1;
+                                    if nargin<1
+                                        error('ERROR: no input basis set specified.  Aborting!!');
+                                    end
                                 end
                             end
                         end
@@ -75,6 +79,17 @@ end
 txfrq           = basisSet.(metNamesArray{1}).txfrq;
 dwellTime       = basisSet.(metNamesArray{1}).dwelltime;
 spectralWidth   = 1/dwellTime;
+
+% Optional linebroadening
+t2 = 1/(pi*lb);
+% Create an exponential decay (lorentzian filter):
+lor = exp(-basisSet.(metNamesArray{1}).t/t2).';
+% first make a bunch of vectors of ones that are the same lengths as each of
+% the dimensions of the data.  Store them in a cell array for ease of use.
+fil = repmat(lor, [ 1 nBasisFct ]);
+
+%Now multiply the data by the filter array.
+fidsArray = fidsArray.*fil;
 
 % Optional zero-fill
 % Calculate how many zeros to add
@@ -209,44 +224,37 @@ end
 fid=fopen(filename);
 line=fgets(fid);
 
-%look for FWHMBA
-fwhmba_index=contains(line,'FWHMBA');
-while ~fwhmba_index;
+% Look for key variables (before the $NMUSED string indicating the beginning 
+% of the block featuring the individual basis functions)
+startBasisIndex = contains(line, '$NMUSED');
+while ~startBasisIndex
     line=fgets(fid);
-    fwhmba_index=contains(line,'FWHMBA');
-    line = GetNumFromString(line);
-end
-linewidth=str2num(line);
+    % TE
+    if contains(line, 'ECHOT')
+        te=str2num(GetNumFromString(line));
+    end
+    % HZPPM
+    if contains(line, 'HZPPPM')
+        hzpppm=str2num(GetNumFromString(line));
+        Bo=hzpppm/42.577;
+    end
+    % FWHMBA
+    if contains(line, 'FWHMBA')
+        linewidth=str2num(GetNumFromString(line));
+    end
+    % BADELT
+    if contains(line, 'BADELT')
+        dwelltime=str2num(GetNumFromString(line));
+        spectralwidth=1/dwelltime;
+    end
 
-%look for HZPPM
-hzpppm_index=contains(line,'HZPPPM');
-while ~hzpppm_index;
-    line=fgets(fid);
-    hzpppm_index=contains(line,'HZPPPM');
-    line = GetNumFromString(line);
+    startBasisIndex = contains(line, '$NMUSED')';
+
 end
-hzpppm=str2num(line);
-Bo=hzpppm/42.577;
+
+% Calculate FWHMBA corrected
 linewidth=linewidth*hzpppm;
 
-%look for TE
-te_index=contains(line,'ECHOT');
-while ~te_index;
-    line=fgets(fid);
-    te_index=contains(line,'ECHOT');
-    line = GetNumFromString(line);
-end
-te=str2num(line);
-
-%look for spectral width
-badelt_index=contains(line,'BADELT');
-while ~badelt_index;
-    line=fgets(fid);
-    badelt_index=contains(line,'BADELT');
-    line = GetNumFromString(line);
-end
-dwelltime=str2num(line);
-spectralwidth=1/dwelltime;
 fileEnd=false;
 
 while ~feof(fid)
@@ -360,7 +368,7 @@ while ~feof(fid)
     end
     f=[(-spectralwidth/2)+(spectralwidth/(2*sz(1))):spectralwidth/(sz(1)):(spectralwidth/2)-(spectralwidth/(2*sz(1)))];
     ppm=f/(Bo*42.577);
-    ppm=ppm+4.68;
+    ppm=ppm+4.65;
     t=[dwelltime:dwelltime:vectorsize*dwelltime];
     txfrq=hzpppm*1e6;
     metabName = RemoveWhiteSpaces(metabName);

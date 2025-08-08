@@ -16,7 +16,7 @@ Text overlap is not controlled for, so you'll probably need to resize the figure
 ## Usage
 
 ```
-out = plotLCMBasis(basisSetFile, stagFlag, metsToPlot, zf, ppmmin, ppmmax, xlab, ylab, figTitle)
+out = plotLCMBasis(basisSetFile, stagFlag, metsToPlot, zf, ppmmin, ppmmax, xlab, ylab, figTitle, lb)
 ```
 
 ### Inputs
@@ -34,6 +34,7 @@ ppmmax          = upper limit of ppm scale to plot (optional.  Default = 5.2 ppm
 xlab            = Label for the x-axis (optional.  Default = 'Chemical shift (ppm)');
 ylab            = label for the y-axis (optional.  Default = '');
 figTitle        = label for the title of the plot (optional.  Default = '');
+lb        = Lorentzian linebroadening in Hz to be applied before plotting (optional. Default = 0 Hz).
 ```
 
 ## Features
@@ -41,6 +42,7 @@ figTitle        = label for the title of the plot (optional.  Default = '');
 - Staggered and non-staggered plots of basis functions.
 - Option to plot a subset of basis functions (provided in the argument `metsToPlot`).
 - Supports encrypted LCModel basis sets (as available on the LCModel website - not that anyone should use those)
+- Optional to apply Lorentzian linebroadening
 
 ## System requirements
 
